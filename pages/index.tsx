@@ -3,6 +3,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { GetServerSideProps } from 'next'
 import { PrismaClient } from '@prisma/client'
+import Head from 'next/head'
 
 export const loader = async () => {
   const db = new PrismaClient()
@@ -64,6 +65,9 @@ type Props = {
 const Index: VFC<Props> = ({ artists, albums, playlists }) => {
   return (
     <div className="container mx-auto min-h-screen">
+      <Head>
+        <title>Home | Remix Sample</title>
+      </Head>
       <h2 className="mt-24 text-5xl font-semibold text-white">Home</h2>
       <div className="mt-12">
         <h3 className="font-semibold text-xl border-b border-gray-900 pb-2">
