@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { GetServerSideProps } from 'next'
 import { PrismaClient } from '@prisma/client'
 
-export const getServerSideProps: GetServerSideProps = async () => {
+export const loader = async () => {
   const db = new PrismaClient()
 
   const user = await db.user.findFirst({
@@ -46,7 +46,13 @@ export const getServerSideProps: GetServerSideProps = async () => {
     }
   })
 
-  return { props: { artists, albums, playlists, user } }
+  return { artists, albums, playlists, user }
+}
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  const props = await loader()
+
+  return { props: { ...props, isCaching: false } }
 }
 
 type Props = {
@@ -68,7 +74,9 @@ const Index: VFC<Props> = ({ artists, albums, playlists }) => {
             <div className="p-4" key={artist.id}>
               <div>
                 <Link href={`/artist/${artist.id}`} passHref>
-                  <Image src={artist.picture} width={250} height={250} />
+                  <a>
+                    <Image src={artist.picture} width={250} height={250} />
+                  </a>
                 </Link>
               </div>
 
@@ -93,7 +101,9 @@ const Index: VFC<Props> = ({ artists, albums, playlists }) => {
             <div className="p-4" key={album.id}>
               <div>
                 <Link href={`/album/${album.id}`} passHref>
-                  <Image src={album.cover} width={250} height={250} />
+                  <a>
+                    <Image src={album.cover} width={250} height={250} />
+                  </a>
                 </Link>
               </div>
 
@@ -118,7 +128,9 @@ const Index: VFC<Props> = ({ artists, albums, playlists }) => {
             <div className="px-4 py-8" key={playlist.id}>
               <div>
                 <Link href={`/playlist/${playlist.id}`} passHref>
-                  <Image src={playlist.cover} width={250} height={250} />
+                  <a>
+                    <Image src={playlist.cover} width={250} height={250} />
+                  </a>
                 </Link>
               </div>
 

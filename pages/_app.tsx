@@ -4,11 +4,12 @@ import Head from 'next/head'
 import Link from 'next/link'
 import 'tailwindcss/tailwind.css'
 import { Playlist, User } from '@prisma/client'
+import Cookies from 'js-cookie'
 
 const MyApp: VFC<AppProps> = ({ Component, pageProps }) => {
-  const isCaching = false
   const cacheableToggle = async () => {
-    // TODO
+    Cookies.set('cacheable', `${!pageProps.isCaching}`)
+    document.location.reload()
   }
 
   return (
@@ -31,10 +32,11 @@ const MyApp: VFC<AppProps> = ({ Component, pageProps }) => {
                   <Component {...pageProps} />
                 </div>
                 <button
+                  title={`Change to ${!pageProps.isCaching ? 'SSG' : 'SSR'}`}
                   onClick={cacheableToggle}
                   className="absolute bottom-0 right-0 m-8 rounded-full py-3 px-6 bg-purple-600 text-white"
                 >
-                  {isCaching ? 'Caching' : 'Not Caching'}
+                  Now {pageProps.isCaching ? 'SSG' : 'SSR'} mode
                 </button>
               </div>
             </div>
