@@ -1,0 +1,17 @@
+// Schema for a fictional music streaming service
+// This service contains songs, albums, artists & playlists, and tracks user interactions with each of them
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["dataproxy", "referentialIntegrity"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  referentialIntegrity = "prisma"
+}
+
+model Reset {
+  id  String  @id @default(uuid())
+}
