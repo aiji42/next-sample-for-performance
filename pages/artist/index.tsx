@@ -1,33 +1,31 @@
 import React, { VFC } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { PrismaClient } from '@prisma/client'
 import { GetServerSideProps } from 'next'
 import Head from 'next/head'
+import { createClient } from '@supabase/supabase-js'
 
 export const loader = async () => {
-  const db = new PrismaClient()
-
-  const user = await db.user.findFirst({
-    select: {
-      name: true,
-      playlists: {
-        select: {
-          id: true,
-          name: true
-        }
+  const supabase = () =>
+    createClient(
+      process.env.SUPABASE_URL ?? '',
+      process.env.SUPABASE_API_KEY ?? '',
+      {
+        fetch
       }
-    }
-  })
+    )
 
-  const artists = await db.artist.findMany({
-    select: {
-      id: true,
-      name: true,
-      picture: true
-    }
-  })
+  const userPromise = supabase()
+    .from('User')
+    .select('name, Playlist (id, name)')
+    .limit(1)
+    .single()
 
+  const { data: artists } = await supabase()
+    .from('Artist')
+    .select('id, name, picture')
+
+  const { data: user } = await userPromise
   return { artists, user }
 }
 

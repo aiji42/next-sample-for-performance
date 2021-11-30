@@ -3,7 +3,6 @@ import type { AppProps } from 'next/app'
 import Head from 'next/head'
 import Link from 'next/link'
 import 'tailwindcss/tailwind.css'
-import { Playlist, User } from '@prisma/client'
 import Cookies from 'js-cookie'
 
 const MyApp: VFC<AppProps> = ({ Component, pageProps }) => {
@@ -49,7 +48,9 @@ const MyApp: VFC<AppProps> = ({ Component, pageProps }) => {
 
 export default MyApp
 
-const SideBar: VFC<{ user: User & { playlists: Playlist[] } }> = ({ user }) => {
+const SideBar: VFC<{
+  user: { name: string; Playlist: { id: string; name: string }[] }
+}> = ({ user }) => {
   return (
     <div className="sidebar bg-gray-900-spotify w-48 flex-none flex flex-col font-semibold">
       <ul className="py-6">
@@ -139,7 +140,7 @@ const SideBar: VFC<{ user: User & { playlists: Playlist[] } }> = ({ user }) => {
           Playlists
         </h3>
         <ul className="leading-extra-loose mb-6">
-          {user.playlists.map(({ id, name }) => (
+          {user.Playlist.map(({ id, name }) => (
             <li className="truncate" key={id}>
               <Link href={`/playlist/${id}`} passHref>
                 <a className="hover:text-white">{name}</a>
@@ -152,7 +153,7 @@ const SideBar: VFC<{ user: User & { playlists: Playlist[] } }> = ({ user }) => {
   )
 }
 
-const TopBar: VFC<{ user: User }> = ({ user }) => {
+const TopBar: VFC<{ user: { name: string } }> = ({ user }) => {
   return (
     <div className="top-bar flex items-center justify-between px-4 py-2">
       <div className="flex items-center">

@@ -1,57 +1,39 @@
 import React, { VFC } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { PrismaClient } from '@prisma/client'
 import { GetServerSideProps } from 'next'
 import {
   timeFormattedString,
   timeFormattedStringShort
 } from '../../utils/formatter'
 import Head from 'next/head'
+import { createClient } from '@supabase/supabase-js'
 
 export const loader = async (id: string) => {
-  const db = new PrismaClient()
-
-  const user = await db.user.findFirst({
-    select: {
-      name: true,
-      playlists: {
-        select: {
-          id: true,
-          name: true
-        }
+  const supabase = () =>
+    createClient(
+      process.env.SUPABASE_URL ?? '',
+      process.env.SUPABASE_API_KEY ?? '',
+      {
+        fetch
       }
-    }
-  })
+    )
 
-  const album = await db.album.findUnique({
-    where: {
-      id
-    },
-    select: {
-      name: true,
-      artists: {
-        select: {
-          id: true,
-          name: true
-        }
-      },
-      cover: true,
-      songs: {
-        select: {
-          id: true,
-          name: true,
-          length: true,
-          interactions: {
-            select: {
-              playCount: true
-            }
-          }
-        }
-      }
-    }
-  })
+  const userPromise = supabase()
+    .from('User')
+    .select('name, Playlist (id, name)')
+    .limit(1)
+    .single()
 
+  const { data: album } = await supabase()
+    .from('Album')
+    .select(
+      'name, cover, Song (id, name, length, Interaction (playCount)), _AlbumToArtist (Artist (id, name)))'
+    )
+    .match({ id })
+    .single()
+
+  const { data: user } = await userPromise
   return { album, user }
 }
 
@@ -70,12 +52,14 @@ type Prop = {
   album: {
     name: string
     cover: string
-    artists: { id: string; name: string }[]
-    songs: {
+    _AlbumToArtist: {
+      Artist: { id: string; name: string }
+    }[]
+    Song: {
       id: string
       name: string
       length: number
-      interactions: { playCount: number }[]
+      Interaction: { playCount: number }[]
     }[]
   }
 }
@@ -98,14 +82,14 @@ const Album: VFC<Prop> = ({ album }) => {
 
           <p className="text-gray-600 text-sm">
             Created by{' '}
-            {album.artists.map(({ id, name }) => (
+            {album._AlbumToArtist.map(({ Artist: { id, name } }) => (
               <Link href={`/artist/${id}`} key={id} passHref>
                 <a className="hover:underline">{name}</a>
               </Link>
             ))}{' '}
-            - {album.songs.length} songs,{' '}
+            - {album.Song.length} songs,{' '}
             {timeFormattedString(
-              album.songs.reduce((res, { length }) => res + length, 0)
+              album.Song.reduce((res, { length }) => res + length, 0)
             )}
           </p>
         </div>
@@ -126,7 +110,7 @@ const Album: VFC<Prop> = ({ album }) => {
           <div className="p-2 w-full">Played</div>
           <div className="p-2 w-12 flex-shrink-0 text-right">⏱</div>
         </div>
-        {album.songs.map((song) => (
+        {album.Song.map((song) => (
           <div
             key={song.id}
             className="flex border-b border-gray-800 hover:bg-gray-800"
@@ -134,9 +118,10 @@ const Album: VFC<Prop> = ({ album }) => {
             <div className="p-3 w-8 flex-shrink-0">▶️</div>
             <div className="p-3 w-full">{song.name}</div>
             <div className="p-3 w-full">
-              {song.interactions
-                .reduce((res, { playCount }) => res + playCount, 0)
-                .toLocaleString()}
+              {song.Interaction.reduce(
+                (res, { playCount }) => res + playCount,
+                0
+              ).toLocaleString()}
             </div>
             <div className="p-3 w-12 flex-shrink-0 text-right">
               {timeFormattedStringShort(song.length)}

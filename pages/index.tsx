@@ -2,50 +2,44 @@ import React, { VFC } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { GetServerSideProps } from 'next'
-import { PrismaClient } from '@prisma/client'
+import { createClient } from '@supabase/supabase-js'
 import Head from 'next/head'
 
 export const loader = async () => {
-  const db = new PrismaClient()
-
-  const user = await db.user.findFirst({
-    select: {
-      name: true,
-      playlists: {
-        select: {
-          id: true,
-          name: true
-        }
+  const supabase = () =>
+    createClient(
+      process.env.SUPABASE_URL ?? '',
+      process.env.SUPABASE_API_KEY ?? '',
+      {
+        fetch
       }
-    }
-  })
+    )
 
-  const artists = await db.artist.findMany({
-    take: 5,
-    select: {
-      id: true,
-      name: true,
-      picture: true
-    }
-  })
+  const userPromise = supabase()
+    .from('User')
+    .select('name, Playlist (id, name)')
+    .limit(1)
+    .single()
 
-  const albums = await db.album.findMany({
-    take: 5,
-    select: {
-      id: true,
-      name: true,
-      cover: true
-    }
-  })
+  const artistPromise = supabase()
+    .from('Artist')
+    .select('id, name, picture')
+    .limit(5)
 
-  const playlists = await db.playlist.findMany({
-    take: 10,
-    select: {
-      id: true,
-      name: true,
-      cover: true
-    }
-  })
+  const albumsPromise = supabase()
+    .from('Album')
+    .select('id, name, cover')
+    .limit(5)
+
+  const playlistsPromise = supabase()
+    .from('Playlist')
+    .select('id, name, cover')
+    .limit(10)
+
+  const { data: user } = await userPromise
+  const { data: artists } = await artistPromise
+  const { data: albums } = await albumsPromise
+  const { data: playlists } = await playlistsPromise
 
   return { artists, albums, playlists, user }
 }
