@@ -1,63 +1,40 @@
 import React, { VFC } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { PrismaClient } from '@prisma/client'
 import { GetServerSideProps } from 'next'
 import {
   timeFormattedString,
   timeFormattedStringShort
 } from '../../utils/formatter'
 import Head from 'next/head'
+import { createClient } from '@supabase/supabase-js'
 
 export const loader = async (id: string) => {
-  const db = new PrismaClient()
-
-  const user = await db.user.findFirst({
-    select: {
-      name: true,
-      playlists: {
-        select: {
-          id: true,
-          name: true
-        }
+  const supabase = () =>
+    createClient(
+      process.env.SUPABASE_URL ?? '',
+      process.env.SUPABASE_API_KEY ?? '',
+      {
+        fetch
       }
-    }
-  })
+    )
 
-  const playlist = await db.playlist.findUnique({
-    where: {
-      id
-    },
-    select: {
-      name: true,
-      cover: true,
-      user: {
-        select: {
-          name: true
-        }
-      },
-      songs: {
-        select: {
-          id: true,
-          name: true,
-          length: true,
-          album: {
-            select: {
-              id: true,
-              name: true
-            }
-          },
-          artist: {
-            select: {
-              id: true,
-              name: true
-            }
-          }
-        }
-      }
-    }
-  })
+  const userPromise = supabase()
+    .from('User')
+    .select('name, Playlist (id, name)')
+    .limit(1)
+    .single()
 
+  const { data: playlist } = await supabase()
+    .from('Playlist')
+    .select(
+      'name, cover, User (name), _PlaylistToSong (Song (id, name, length, Album (id, name), Artist (id, name))))'
+    )
+    .match({ id })
+    .limit(1)
+    .single()
+
+  const { data: user } = await userPromise
   return { playlist, user }
 }
 
@@ -76,20 +53,22 @@ type Prop = {
   playlist: {
     name: string
     cover: string
-    user: {
+    User: {
       name: string
     }
-    songs: {
-      id: string
-      name: string
-      length: number
-      album: {
+    _PlaylistToSong: {
+      Song: {
         id: string
         name: string
-      } | null
-      artist: {
-        id: string
-        name: string
+        length: number
+        Album?: {
+          id: string
+          name: string
+        } | null
+        Artist: {
+          id: string
+          name: string
+        }
       }
     }[]
   }
@@ -112,10 +91,13 @@ const Playlist: VFC<Prop> = ({ playlist }) => {
           <h1 className="mt-0 mb-2 text-white text-4xl">{playlist.name}</h1>
 
           <p className="text-gray-600 text-sm">
-            Created by <a>{playlist.user.name}</a> - {playlist.songs.length}{' '}
-            songs,{' '}
+            Created by <a>{playlist.User.name}</a> -{' '}
+            {playlist._PlaylistToSong.length} songs,{' '}
             {timeFormattedString(
-              playlist.songs.reduce((res, { length }) => res + length, 0)
+              playlist._PlaylistToSong.reduce(
+                (res, { Song: { length } }) => res + length,
+                0
+              )
             )}
           </p>
         </div>
@@ -137,7 +119,7 @@ const Playlist: VFC<Prop> = ({ playlist }) => {
           <div className="p-2 w-full">Album</div>
           <div className="p-2 w-12 flex-shrink-0 text-right">⏱</div>
         </div>
-        {playlist.songs.map((song) => (
+        {playlist._PlaylistToSong.map(({ Song: song }) => (
           <div
             key={song.id}
             className="flex border-b border-gray-800 hover:bg-gray-800"
@@ -145,13 +127,13 @@ const Playlist: VFC<Prop> = ({ playlist }) => {
             <div className="p-3 w-8 flex-shrink-0">▶️</div>
             <div className="p-3 w-full">{song.name}</div>
             <div className="p-3 w-full">
-              <Link href={`/artist/${song.artist.id}`} passHref>
-                <a className="hover:underline">{song.artist.name}</a>
+              <Link href={`/artist/${song.Artist.id}`} passHref>
+                <a className="hover:underline">{song.Artist.name}</a>
               </Link>
             </div>
             <div className="p-3 w-full">
-              <Link href={`/album/${song.album?.id}`}>
-                <a className="hover:underline">{song.album?.name}</a>
+              <Link href={`/album/${song.Album?.id}`}>
+                <a className="hover:underline">{song.Album?.name}</a>
               </Link>
             </div>
             <div className="p-3 w-12 flex-shrink-0 text-right">
