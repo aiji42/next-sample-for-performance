@@ -20,7 +20,7 @@ const MyApp: VFC<AppProps> = ({ Component, pageProps }) => {
       <div className="bg-black relative">
         <div className="flex flex-col h-screen text-sm text-gray-400">
           <div className="flex-1 flex overflow-y-hidden">
-            <SideBar user={pageProps.user ?? { playlists: [] }} />
+            <SideBar user={pageProps.user ?? { Playlist: [] }} />
             <div className="bg-gray-800-spotify flex-1 flex flex-col">
               <TopBar user={pageProps.user ?? { name: '' }} />
               <div
