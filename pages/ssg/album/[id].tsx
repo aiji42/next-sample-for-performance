@@ -1,16 +1,21 @@
 import Album, { loader } from '../../album/[id]'
 import { GetStaticPaths, GetStaticProps } from 'next'
-import { PrismaClient } from '@prisma/client'
+import { createClient } from '@supabase/supabase-js'
 
 export const getStaticPaths: GetStaticPaths = async () => {
-  const db = new PrismaClient()
-  const data = await db.album.findMany({
-    select: {
-      id: true
-    }
-  })
+  const supabase = () =>
+    createClient(
+      process.env.SUPABASE_URL ?? '',
+      process.env.SUPABASE_API_KEY ?? '',
+      {
+        fetch
+      }
+    )
+
+  const { data } = await supabase().from('Album').select('id')
+
   return {
-    paths: data.map(({ id }) => `/ssg/album/${id}`),
+    paths: data?.map(({ id }) => `/ssg/album/${id}`) ?? [],
     fallback: 'blocking'
   }
 }

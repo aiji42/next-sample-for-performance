@@ -1,16 +1,20 @@
 import Playlist, { loader } from '../../playlist/[id]'
 import { GetStaticPaths, GetStaticProps } from 'next'
-import { PrismaClient } from '@prisma/client'
+import { createClient } from '@supabase/supabase-js'
 
 export const getStaticPaths: GetStaticPaths = async () => {
-  const db = new PrismaClient()
-  const data = await db.playlist.findMany({
-    select: {
-      id: true
-    }
-  })
+  const supabase = () =>
+    createClient(
+      process.env.SUPABASE_URL ?? '',
+      process.env.SUPABASE_API_KEY ?? '',
+      {
+        fetch
+      }
+    )
+
+  const { data } = await supabase().from('Playlist').select('id')
   return {
-    paths: data.map(({ id }) => `/ssg/playlist/${id}`),
+    paths: data?.map(({ id }) => `/ssg/playlist/${id}`) ?? [],
     fallback: 'blocking'
   }
 }
